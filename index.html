@@ -432,21 +432,63 @@
             <div class="glassmorphism rounded-3xl border border-white/10 p-8 shadow-2xl relative overflow-hidden">
                 
                 <!-- Success State (hidden by default) -->
-                <div id="success-container" class="hidden text-center py-10 space-y-6 opacity-0 scale-95 transition-all duration-300">
-                    <div class="w-16 h-16 bg-white text-black rounded-full flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+                <div id="success-container" class="hidden text-center py-6 space-y-6 opacity-0 scale-95 transition-all duration-300">
+                    <div class="w-16 h-16 bg-white text-black rounded-full flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(255,255,255,0.2)] mb-2">
                         <span class="material-symbols-outlined text-3xl font-extrabold">done</span>
                     </div>
-                    <div class="space-y-2">
-                        <h3 class="text-2xl font-bold font-display">You’re in.</h3>
-                        <p class="text-sm text-gray-400 font-light max-w-xs mx-auto" id="sharing-text">Cloasta will remember you.</p>
-                    </div>
                     
-                    <div class="pt-6">
-                        <a id="share-twitter-btn" target="_blank" href="#" class="w-full bg-[#111111] hover:bg-white/10 border border-white/10 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95">
-                            <svg class="w-4 h-4 fill-white" viewBox="0 0 24 24" aria-hidden="true">
+                    <div class="space-y-2">
+                        <h3 class="text-3xl font-bold font-display text-white" id="success-title">You're on the list! 🎉</h3>
+                        <p class="text-xs text-gray-400 font-light max-w-sm mx-auto" id="sharing-text">
+                            We will prioritize your access as we roll out slots.
+                        </p>
+                    </div>
+
+                    <!-- Waitlist Position Badge -->
+                    <div id="position-badge-container" class="hidden inline-flex flex-col items-center justify-center bg-white/5 border border-white/10 rounded-2xl px-6 py-4 mx-auto space-y-1">
+                        <span class="text-[9px] font-bold uppercase tracking-widest text-gray-500">Your Waitlist Position</span>
+                        <span class="text-3xl font-bold font-display text-gradient" id="position-number">#0</span>
+                    </div>
+
+                    <!-- Countdown to May 20 -->
+                    <div class="space-y-3 bg-white/[0.02] border border-white/5 rounded-2xl p-5 max-w-sm mx-auto">
+                        <span class="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-500 block">Launching May 20</span>
+                        <div class="grid grid-cols-4 gap-2 text-center">
+                            <div class="bg-white/5 rounded-xl py-2">
+                                <span class="text-xl font-bold font-display block" id="countdown-days">00</span>
+                                <span class="text-[8px] text-gray-500 uppercase tracking-wider">Days</span>
+                            </div>
+                            <div class="bg-white/5 rounded-xl py-2">
+                                <span class="text-xl font-bold font-display block" id="countdown-hours">00</span>
+                                <span class="text-[8px] text-gray-500 uppercase tracking-wider">Hours</span>
+                            </div>
+                            <div class="bg-white/5 rounded-xl py-2">
+                                <span class="text-xl font-bold font-display block" id="countdown-mins">00</span>
+                                <span class="text-[8px] text-gray-500 uppercase tracking-wider">Mins</span>
+                            </div>
+                            <div class="bg-white/5 rounded-xl py-2">
+                                <span class="text-xl font-bold font-display block" id="countdown-secs">00</span>
+                                <span class="text-[8px] text-gray-500 uppercase tracking-wider">Secs</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sharing Actions -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-sm mx-auto pt-2">
+                        <!-- Twitter / X Share -->
+                        <a id="share-twitter-btn" target="_blank" href="#" class="w-full bg-[#111111] hover:bg-white/10 border border-white/10 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 text-xs transition-all hover:scale-[1.02] active:scale-95">
+                            <svg class="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24" aria-hidden="true">
                                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
                             </svg>
-                            <span>Share Early Access</span>
+                            <span>Share on X</span>
+                        </a>
+                        
+                        <!-- WhatsApp Share -->
+                        <a id="share-whatsapp-btn" target="_blank" href="#" class="w-full bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/20 text-[#25D366] font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 text-xs transition-all hover:scale-[1.02] active:scale-95">
+                            <svg class="w-3.5 h-3.5 fill-[#25D366]" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.666.988 3.306 1.48 5.357 1.481 5.568 0 10.103-4.52 10.106-10.07 0-2.69-1.045-5.216-2.943-7.115a9.92 9.92 0 0 0-7.102-2.924C6.54 1.53 2.006 6.05 2.003 11.6c-.001 2.106.551 4.167 1.596 5.96L2.617 21.5l4.03-1.056z"></path>
+                            </svg>
+                            <span>Share on WhatsApp</span>
                         </a>
                     </div>
                 </div>

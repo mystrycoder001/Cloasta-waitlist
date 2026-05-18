@@ -12,8 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitBtn = $('waitlist-submit-btn');
     const successContainer = $('success-container');
     const formContainer = $('form-container');
-    const sharingText = $('sharing-text');
-    const shareBtn = $('share-twitter-btn');
     
     // Parse URL source/ref parameter if exists (e.g. waitlist.html?ref=twitter)
     const urlParams = new URLSearchParams(window.location.search);
@@ -27,6 +25,119 @@ document.addEventListener('DOMContentLoaded', () => {
         toast.style.background = isError ? 'rgba(20, 10, 10, 0.9)' : 'rgba(10, 20, 10, 0.9)';
         toast.classList.remove('opacity-0', 'translate-y-20');
         setTimeout(() => toast.classList.add('opacity-0', 'translate-y-20'), 4000);
+    }
+
+    function showSuccess(message, position) {
+        const successTitle = $('success-title');
+        const posContainer = $('position-badge-container');
+        const posNumber = $('position-number');
+        const twitterBtn = $('share-twitter-btn');
+        const whatsappBtn = $('share-whatsapp-btn');
+
+        if (successTitle) {
+            successTitle.textContent = message;
+        }
+
+        if (position && posContainer && posNumber) {
+            posNumber.textContent = `#${position}`;
+            posContainer.classList.remove('hidden');
+        } else if (posContainer) {
+            posContainer.classList.add('hidden');
+        }
+
+        // Configure Twitter/WhatsApp share buttons
+        const twitterText = encodeURIComponent("I just joined the Cloasta waitlist 🌊\nYour AI. Closest to you.\nLaunching May 20 👇\ncloasta-waitlist.vercel.app\n#Cloasta #AI #buildinpublic");
+        const whatsappText = encodeURIComponent("Check out Cloasta 🌊 \nYour AI closest to you.\nLaunching May 20!\ncloasta-waitlist.vercel.app");
+
+        if (twitterBtn) {
+            twitterBtn.href = `https://twitter.com/intent/tweet?text=${twitterText}`;
+        }
+        if (whatsappBtn) {
+            whatsappBtn.href = `https://api.whatsapp.com/send?text=${whatsappText}`;
+        }
+
+        // Start countdown to May 20
+        startCountdown();
+
+        // Smooth cinematic transition to success state
+        if (formContainer && successContainer) {
+            formContainer.classList.add('opacity-0', 'scale-95');
+            setTimeout(() => {
+                formContainer.classList.add('hidden');
+                successContainer.classList.remove('hidden');
+                setTimeout(() => {
+                    successContainer.classList.remove('opacity-0', 'scale-95');
+                }, 50);
+            }, 300);
+        }
+    }
+
+    function showError(message) {
+        showToast(message, true);
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<span>Get Early Access</span>`;
+        }
+    }
+
+    async function joinWaitlist(email, role) {
+        try {
+            const { data, error } = await supabase
+                .from('cloasta_waitlist')
+                .insert([{ 
+                    email: email.trim().toLowerCase(),
+                    role: role || 'User',
+                    source: source || 'direct'
+                }])
+                .select('position')
+                .single();
+            
+            if (error) {
+                if (error.code === '23505') {
+                    showSuccess("You're already on the list! See you May 20 🎉", null);
+                    return;
+                }
+                console.error('Insert error:', error);
+                showError('Something went wrong: ' + error.message);
+                return;
+            }
+            
+            showSuccess("You're on the list! 🎉", data?.position);
+            
+        } catch (err) {
+            console.error('Catch error:', err);
+            showError('Please try again.');
+        }
+    }
+
+    function startCountdown() {
+        const launchDate = new Date("May 20, 2026 00:00:00").getTime();
+        
+        function update() {
+            const now = new Date().getTime();
+            const distance = launchDate - now;
+            
+            if (distance < 0) {
+                if ($('countdown-days')) $('countdown-days').textContent = '00';
+                if ($('countdown-hours')) $('countdown-hours').textContent = '00';
+                if ($('countdown-mins')) $('countdown-mins').textContent = '00';
+                if ($('countdown-secs')) $('countdown-secs').textContent = '00';
+                return;
+            }
+            
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+            
+            if ($('countdown-days')) $('countdown-days').textContent = String(days).padStart(2, '0');
+            if ($('countdown-hours')) $('countdown-hours').textContent = String(hours).padStart(2, '0');
+            if ($('countdown-mins')) $('countdown-mins').textContent = String(minutes).padStart(2, '0');
+            if ($('countdown-secs')) $('countdown-secs').textContent = String(seconds).padStart(2, '0');
+        }
+        
+        update();
+        setInterval(update, 1000);
     }
 
     if (form) {
@@ -58,70 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }
 
-            try {
-                const { data, error } = await supabase
-                    .from('cloasta_waitlist')
-                    .insert([
-                        { 
-                            email: email, 
-                            role: role, 
-                            source: source 
-                        }
-                    ]);
-
-                if (error) {
-                    // Check for duplicate key / already registered
-                    if (error.code === '23505') {
-                        throw new Error("You are already on the waitlist! We will prioritize your spot.");
-                    }
-                    throw error;
-                }
-
-                // Smooth cinematic transition to success state
-                if (formContainer && successContainer) {
-                    formContainer.classList.add('opacity-0', 'scale-95');
-                    setTimeout(() => {
-                        formContainer.classList.add('hidden');
-                        successContainer.classList.remove('hidden');
-                        // Fade in success elements sequentially
-                        setTimeout(() => {
-                            successContainer.classList.remove('opacity-0', 'scale-95');
-                        }, 50);
-                    }, 300);
-                }
-
-                // Custom Twitter / X share configuration
-                if (shareBtn) {
-                    const text = encodeURIComponent("I just secured early access to Cloasta — persistent AI memory & identity across every tool. No more starting from zero again. 🌐🧠\n\nJoin the waitlist here:");
-                    const url = encodeURIComponent(window.location.origin + window.location.pathname);
-                    shareBtn.setAttribute('href', `https://twitter.com/intent/tweet?text=${text}&url=${url}`);
-                }
-
-            } catch (err) {
-                // If it's a known "already registered" error, handle it gracefully as success but with warning note
-                if (err.message.includes("already on the waitlist")) {
-                    showToast(err.message, false);
-                    if (formContainer && successContainer) {
-                        formContainer.classList.add('opacity-0', 'scale-95');
-                        setTimeout(() => {
-                            formContainer.classList.add('hidden');
-                            successContainer.classList.remove('hidden');
-                            if (sharingText) {
-                                sharingText.textContent = "You're already registered! Keep sharing with your network for higher priority access.";
-                            }
-                            setTimeout(() => {
-                                successContainer.classList.remove('opacity-0', 'scale-95');
-                            }, 50);
-                        }, 300);
-                    }
-                } else {
-                    showToast('❌ ' + (err.message || 'Error joining waitlist. Please try again.'));
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = `<span>Get Early Access</span>`;
-                    }
-                }
-            }
+            await joinWaitlist(email, role);
         });
     }
 });
