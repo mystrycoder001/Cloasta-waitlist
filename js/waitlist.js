@@ -7,28 +7,35 @@ const supabase = createClient(
 
 async function getWaitlistCount() {
   try {
-    const { count } = await supabase
+    const { count, error } = await supabase
     .from('cloasta_waitlist')
     .select('*', { 
       count: 'exact', 
       head: true 
     })
     
+    if (error) {
+      console.error('Count error from Supabase:', error)
+      return
+    }
+    
     const el = document.getElementById('waitlist-count')
-    if (el) el.textContent = count || 0
+    if (el) el.textContent = count !== null ? count : 0
   } catch (e) {
-    console.log('Count error:', e)
+    console.error('Count error:', e)
   }
 }
 
-async function joinWaitlist() {
+async function joinWaitlist(e) {
+  if (e) e.preventDefault();
+  
   const emailEl = document.getElementById('waitlist-email')
   const roleEl = document.getElementById('waitlist-role')
   const btn = document.getElementById('waitlist-btn') || document.getElementById('waitlist-submit-btn') || document.querySelector('button[type="submit"]') || document.querySelector('.waitlist-btn')
   
   if (!emailEl) {
     console.error('Email input not found')
-    return
+    return false
   }
   
   const email = emailEl.value.trim().toLowerCase()
@@ -36,11 +43,13 @@ async function joinWaitlist() {
   
   if (!email || !email.includes('@')) {
     showError('Please enter valid email')
-    return
+    return false
   }
   
-  btn.disabled = true
-  btn.textContent = 'Joining...'
+  if (btn) {
+    btn.disabled = true
+    btn.innerHTML = '<span>Joining...</span>'
+  }
   
   try {
     console.log('Attempting insert:', { email, role })
@@ -56,9 +65,9 @@ async function joinWaitlist() {
     console.log('Result:', { data, error })
     
     if (error) {
-      if (error.code === '23505') {
+      if (error.code === '23505' || (error.message && error.message.includes('unique'))) {
         showSuccess(null, true)
-        return
+        return false
       }
       throw new Error(error.message)
     }
@@ -74,10 +83,13 @@ async function joinWaitlist() {
     
   } catch (err) {
     console.error('Full error:', err)
-    btn.disabled = false
-    btn.textContent = 'Get Early Access'
+    if (btn) {
+      btn.disabled = false
+      btn.innerHTML = '<span>Get Early Access</span>'
+    }
     showError(err.message)
   }
+  return false;
 }
 
 function showError(msg) {
@@ -136,7 +148,7 @@ function showSuccess(count, existing) {
   ` : `
     <div style="font-size:48px">🎉</div>
     <h2 style="color:white;margin:16px 0">You're on the list!</h2>
-    ${count ? `<p style="color:#888">You are one of <strong style="color:white">${count}</strong> people waiting.</p>` : ''}
+    ${count !== null && count !== undefined ? \`<p style="color:#888">You are one of <strong style="color:white">\${count}</strong> people waiting.</p>\` : ''}
     <p style="color:#888;margin:8px 0">Cloasta launches May 20.</p>
     
     <div style="
@@ -189,25 +201,11 @@ window.shareWhatsApp = function() {
   window.open('https://wa.me/?text=' + text, '_blank')
 }
 
+// Make sure joinWaitlist is accessible globally for the onsubmit handler
+window.joinWaitlist = joinWaitlist;
+
 function init() {
   getWaitlistCount()
-  
-  const btn = document.getElementById('waitlist-btn') || document.getElementById('waitlist-submit-btn') || document.querySelector('button[type="submit"]') || document.querySelector('.waitlist-btn')
-  
-  if (btn) {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      joinWaitlist();
-    })
-  }
-  
-  const form = document.querySelector('form')
-  if (form) {
-    form.addEventListener('submit', (e) => {
-      e.preventDefault()
-      joinWaitlist()
-    })
-  }
 }
 
 if (document.readyState === 'loading') {

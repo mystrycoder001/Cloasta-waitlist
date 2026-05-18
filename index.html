@@ -493,7 +493,7 @@
 
                 <!-- Form Container -->
                 <div id="form-container" class="transition-all duration-300">
-                    <form id="waitlist-form" class="space-y-6">
+                    <form id="waitlist-form" class="space-y-6" onsubmit="if(window.joinWaitlist) { window.joinWaitlist(event); } event.preventDefault(); return false;">
                         <div class="space-y-2 text-left">
                             <label for="waitlist-email" class="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Email Address</label>
                             <input type="email" id="waitlist-email" required
