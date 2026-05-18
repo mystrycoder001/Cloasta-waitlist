@@ -1,177 +1,214 @@
-import { CONFIG } from './config.js';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
-// Initialize Supabase Client
-const supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+const supabase = createClient(
+  'https://ibsngqwkaasswscqnlhl.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlic25ncXdrYWFzc3dzY3FubGhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NTMwMTAsImV4cCI6MjA5NDMyOTAxMH0.Obb19o0RfcPfyh_R1ygowBLiUtUDr7dz38978tb9nG0'
+)
 
-const $ = (id) => document.getElementById(id);
-
-document.addEventListener('DOMContentLoaded', () => {
-    const form = $('waitlist-form');
-    const emailInput = $('waitlist-email');
-    const roleSelect = $('waitlist-role');
-    const submitBtn = $('waitlist-submit-btn');
-    const successContainer = $('success-container');
-    const formContainer = $('form-container');
+async function getWaitlistCount() {
+  try {
+    const { count } = await supabase
+    .from('cloasta_waitlist')
+    .select('*', { 
+      count: 'exact', 
+      head: true 
+    })
     
-    // Parse URL source/ref parameter if exists (e.g. waitlist.html?ref=twitter)
-    const urlParams = new URLSearchParams(window.location.search);
-    const source = urlParams.get('ref') || urlParams.get('utm_source') || 'direct';
+    const el = document.getElementById('waitlist-count')
+    if (el) el.textContent = count || 0
+  } catch (e) {
+    console.log('Count error:', e)
+  }
+}
 
-    function showToast(msg, isError = true) {
-        const toast = $('toast');
-        if (!toast) return;
-        toast.textContent = msg;
-        toast.style.borderColor = isError ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)';
-        toast.style.background = isError ? 'rgba(20, 10, 10, 0.9)' : 'rgba(10, 20, 10, 0.9)';
-        toast.classList.remove('opacity-0', 'translate-y-20');
-        setTimeout(() => toast.classList.add('opacity-0', 'translate-y-20'), 4000);
+async function joinWaitlist() {
+  const emailEl = document.getElementById('waitlist-email')
+  const roleEl = document.getElementById('waitlist-role')
+  const btn = document.getElementById('waitlist-btn') || document.getElementById('waitlist-submit-btn') || document.querySelector('button[type="submit"]') || document.querySelector('.waitlist-btn')
+  
+  if (!emailEl) {
+    console.error('Email input not found')
+    return
+  }
+  
+  const email = emailEl.value.trim().toLowerCase()
+  const role = roleEl?.value || 'general'
+  
+  if (!email || !email.includes('@')) {
+    showError('Please enter valid email')
+    return
+  }
+  
+  btn.disabled = true
+  btn.textContent = 'Joining...'
+  
+  try {
+    console.log('Attempting insert:', { email, role })
+    
+    const { data, error } = await supabase
+    .from('cloasta_waitlist')
+    .insert({ 
+      email: email,
+      role: role,
+      source: document.referrer || 'direct'
+    })
+    
+    console.log('Result:', { data, error })
+    
+    if (error) {
+      if (error.code === '23505') {
+        showSuccess(null, true)
+        return
+      }
+      throw new Error(error.message)
     }
+    
+    const { count } = await supabase
+    .from('cloasta_waitlist')
+    .select('*', { 
+      count: 'exact', 
+      head: true 
+    })
+    
+    showSuccess(count, false)
+    
+  } catch (err) {
+    console.error('Full error:', err)
+    btn.disabled = false
+    btn.textContent = 'Get Early Access'
+    showError(err.message)
+  }
+}
 
-    function showSuccess(message, position) {
-        const successTitle = $('success-title');
-        const posContainer = $('position-badge-container');
-        const posNumber = $('position-number');
-        const twitterBtn = $('share-twitter-btn');
-        const whatsappBtn = $('share-whatsapp-btn');
+function showError(msg) {
+  let toast = document.getElementById('error-toast')
+  if (!toast) {
+    toast = document.createElement('div')
+    toast.id = 'error-toast'
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 100px;
+      font-size: 14px;
+      z-index: 9999;
+    `
+    document.body.appendChild(toast)
+  }
+  toast.textContent = '❌ ' + msg
+  setTimeout(() => toast.remove(), 4000)
+}
 
-        if (successTitle) {
-            successTitle.textContent = message;
-        }
+function showSuccess(count, existing) {
+  const formSection = document.getElementById('waitlist-form') || document.querySelector('form') || document.querySelector('.waitlist-form-container')
+  const formContainer = document.getElementById('form-container')
+  
+  if (formSection) {
+    formSection.style.display = 'none'
+  }
+  if (formContainer) {
+    formContainer.style.display = 'none'
+  }
+  
+  let successDiv = document.getElementById('success-state')
+  
+  if (!successDiv) {
+    successDiv = document.createElement('div')
+    successDiv.id = 'success-state'
+    successDiv.style.cssText = `
+      text-align: center;
+      padding: 40px 20px;
+      max-width: 500px;
+      margin: 0 auto;
+    `
+    formSection?.parentNode.insertBefore(successDiv, formSection.nextSibling)
+  }
+  
+  successDiv.innerHTML = existing ? `
+    <div style="font-size:48px">🎉</div>
+    <h2 style="color:white;margin:16px 0">You're already on the list!</h2>
+    <p style="color:#888">We'll see you on May 20. Stay tuned!</p>
+  ` : `
+    <div style="font-size:48px">🎉</div>
+    <h2 style="color:white;margin:16px 0">You're on the list!</h2>
+    ${count ? `<p style="color:#888">You are one of <strong style="color:white">${count}</strong> people waiting.</p>` : ''}
+    <p style="color:#888;margin:8px 0">Cloasta launches May 20.</p>
+    
+    <div style="
+      display:flex;
+      gap:12px;
+      justify-content:center;
+      margin-top:24px;
+    ">
+      <button onclick="shareTwitter()" 
+      style="
+        background:black;
+        border:1px solid #333;
+        color:white;
+        padding:10px 20px;
+        border-radius:100px;
+        cursor:pointer;
+        font-size:14px;
+      ">
+        Share on Twitter 𝕏
+      </button>
+      <button onclick="shareWhatsApp()"
+      style="
+        background:black;
+        border:1px solid #333;
+        color:white;
+        padding:10px 20px;
+        border-radius:100px;
+        cursor:pointer;
+        font-size:14px;
+      ">
+        Share on WhatsApp
+      </button>
+    </div>
+  `
+  
+  successDiv.style.display = 'block'
+}
 
-        if (position && posContainer && posNumber) {
-            posNumber.textContent = `#${position}`;
-            posContainer.classList.remove('hidden');
-        } else if (posContainer) {
-            posContainer.classList.add('hidden');
-        }
+window.shareTwitter = function() {
+  const text = encodeURIComponent(
+    "I just joined @CloastaAI waitlist 🌊\n\nYour AI. Closest to you.\n\nLaunching May 20 👇\ncloasta-waitlist.vercel.app\n\n#Cloasta #AI #buildinpublic"
+  )
+  window.open('https://twitter.com/intent/tweet?text=' + text, '_blank')
+}
 
-        // Configure Twitter/WhatsApp share buttons
-        const twitterText = encodeURIComponent("I just joined the Cloasta waitlist 🌊\nYour AI. Closest to you.\nLaunching May 20 👇\ncloasta-waitlist.vercel.app\n#Cloasta #AI #buildinpublic");
-        const whatsappText = encodeURIComponent("Check out Cloasta 🌊 \nYour AI closest to you.\nLaunching May 20!\ncloasta-waitlist.vercel.app");
+window.shareWhatsApp = function() {
+  const text = encodeURIComponent(
+    "I just joined Cloasta waitlist! 🌊\nYour AI closest to you.\nLaunching May 20!\ncloasta-waitlist.vercel.app"
+  )
+  window.open('https://wa.me/?text=' + text, '_blank')
+}
 
-        if (twitterBtn) {
-            twitterBtn.href = `https://twitter.com/intent/tweet?text=${twitterText}`;
-        }
-        if (whatsappBtn) {
-            whatsappBtn.href = `https://api.whatsapp.com/send?text=${whatsappText}`;
-        }
+// Connect button to function
+document.addEventListener('DOMContentLoaded', () => {
+  getWaitlistCount()
+  
+  const btn = document.getElementById('waitlist-btn') || document.getElementById('waitlist-submit-btn') || document.querySelector('button[type="submit"]') || document.querySelector('.waitlist-btn')
+  
+  if (btn) {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      joinWaitlist();
+    })
+  }
+  
+  const form = document.querySelector('form')
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault()
+      joinWaitlist()
+    })
+  }
+})
 
-        // Start countdown to May 20
-        startCountdown();
-
-        // Smooth cinematic transition to success state
-        if (formContainer && successContainer) {
-            formContainer.classList.add('opacity-0', 'scale-95');
-            setTimeout(() => {
-                formContainer.classList.add('hidden');
-                successContainer.classList.remove('hidden');
-                setTimeout(() => {
-                    successContainer.classList.remove('opacity-0', 'scale-95');
-                }, 50);
-            }, 300);
-        }
-    }
-
-    function showError(message) {
-        showToast(message, true);
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = `<span>Get Early Access</span>`;
-        }
-    }
-
-    async function joinWaitlist(email, role) {
-        try {
-            const { error } = await supabase
-                .from('cloasta_waitlist')
-                .insert([{ 
-                    email: email.trim().toLowerCase(),
-                    role: role || 'User',
-                    source: source || 'direct'
-                }]);
-            
-            if (error) {
-                if (error.code === '23505') {
-                    showSuccess("You're already on the list! See you May 20 🎉", null);
-                    return;
-                }
-                console.error('Insert error:', error);
-                showError('Something went wrong: ' + error.message);
-                return;
-            }
-            
-            const { count } = await supabase
-                .from('cloasta_waitlist')
-                .select('*', { count: 'exact', head: true });
-            
-            showSuccess("You're on the list! 🎉", count);
-            
-        } catch (err) {
-            console.error('Catch error:', err);
-            showError('Please try again.');
-        }
-    }
-
-    function startCountdown() {
-        const launchDate = new Date("May 20, 2026 00:00:00").getTime();
-        
-        function update() {
-            const now = new Date().getTime();
-            const distance = launchDate - now;
-            
-            if (distance < 0) {
-                if ($('countdown-days')) $('countdown-days').textContent = '00';
-                if ($('countdown-hours')) $('countdown-hours').textContent = '00';
-                if ($('countdown-mins')) $('countdown-mins').textContent = '00';
-                if ($('countdown-secs')) $('countdown-secs').textContent = '00';
-                return;
-            }
-            
-            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-            
-            if ($('countdown-days')) $('countdown-days').textContent = String(days).padStart(2, '0');
-            if ($('countdown-hours')) $('countdown-hours').textContent = String(hours).padStart(2, '0');
-            if ($('countdown-mins')) $('countdown-mins').textContent = String(minutes).padStart(2, '0');
-            if ($('countdown-secs')) $('countdown-secs').textContent = String(seconds).padStart(2, '0');
-        }
-        
-        update();
-        setInterval(update, 1000);
-    }
-
-    if (form) {
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const email = emailInput?.value.trim();
-            const role = roleSelect?.value;
-
-            if (!email || !email.includes('@')) {
-                showToast('Please enter a valid email address.');
-                return;
-            }
-
-            if (!role) {
-                showToast('Please select your role.');
-                return;
-            }
-
-            // Disable submit button and show loading state
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = `
-                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-black inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Securing Spot...</span>
-                `;
-            }
-
-            await joinWaitlist(email, role);
-        });
-    }
-});
+export { joinWaitlist, shareTwitter, shareWhatsApp }
