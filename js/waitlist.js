@@ -82,15 +82,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function joinWaitlist(email, role) {
         try {
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('cloasta_waitlist')
                 .insert([{ 
                     email: email.trim().toLowerCase(),
                     role: role || 'User',
                     source: source || 'direct'
-                }])
-                .select('position')
-                .single();
+                }]);
             
             if (error) {
                 if (error.code === '23505') {
@@ -102,7 +100,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            showSuccess("You're on the list! 🎉", data?.position);
+            const { count } = await supabase
+                .from('cloasta_waitlist')
+                .select('*', { count: 'exact', head: true });
+            
+            showSuccess("You're on the list! 🎉", count);
             
         } catch (err) {
             console.error('Catch error:', err);
