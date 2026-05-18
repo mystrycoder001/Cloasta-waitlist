@@ -189,8 +189,7 @@ window.shareWhatsApp = function() {
   window.open('https://wa.me/?text=' + text, '_blank')
 }
 
-// Connect button to function
-document.addEventListener('DOMContentLoaded', () => {
+function init() {
   getWaitlistCount()
   
   const btn = document.getElementById('waitlist-btn') || document.getElementById('waitlist-submit-btn') || document.querySelector('button[type="submit"]') || document.querySelector('.waitlist-btn')
@@ -209,6 +208,12 @@ document.addEventListener('DOMContentLoaded', () => {
       joinWaitlist()
     })
   }
-})
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init)
+} else {
+  init()
+}
 
 export { joinWaitlist, shareTwitter, shareWhatsApp }
