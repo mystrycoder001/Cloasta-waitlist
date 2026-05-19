@@ -148,7 +148,7 @@ function showSuccess(count, existing) {
   ` : `
     <div style="font-size:48px">🎉</div>
     <h2 style="color:white;margin:16px 0">You're on the list!</h2>
-    ${count !== null && count !== undefined ? \`<p style="color:#888">You are one of <strong style="color:white">\${count}</strong> people waiting.</p>\` : ''}
+    ${count !== null && count !== undefined ? `<p style="color:#888">You are one of <strong style="color:white">${count}</strong> people waiting.</p>` : ''}
     <p style="color:#888;margin:8px 0">Cloasta launches May 20.</p>
     
     <div style="
